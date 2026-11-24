@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#070b18">
+<title>NEON//BREAK - Prototype</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box;touch-action:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050813;color:#eaf7ff;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
+#wrap{height:100%;display:flex;flex-direction:column;max-width:900px;margin:auto;background:radial-gradient(ellipse at 50% 0%,#152747 0,#080d1c 55%,#03050c 100%)}
+header{padding:10px 14px 6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.logo{font-weight:900;letter-spacing:.13em;color:#8eeeff;font-size:clamp(15px,4vw,21px);text-shadow:0 0 12px #19bfff}
+#stageName{font-size:11px;color:#b6c8dc;letter-spacing:.12em;text-align:right}
+#hud{padding:4px 14px 8px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.meter{background:#101a2b;border:1px solid #29425e;border-radius:7px;padding:5px 8px;font-size:11px}
+.meter b{display:block;font-size:12px;margin-bottom:3px}
+.bar{height:7px;border-radius:8px;background:#26364b;overflow:hidden}
+.fill{height:100%;width:100%;background:linear-gradient(90deg,#27e0c1,#69f7ff);transition:width .12s}
+#bossMeter{display:none;grid-column:1/-1}
+#bossMeter .fill{background:linear-gradient(90deg,#ff3f76,#ffb15a)}
+main{flex:1;min-height:0;position:relative;padding:0 8px}
+canvas{display:block;width:100%;height:100%;border:1px solid #24405d;border-radius:10px;background:#071020;box-shadow:0 0 25px #0b8dba20}
+#overlay{position:absolute;inset:0 8px;display:flex;align-items:center;justify-content:center;background:#030713d9;border-radius:10px;padding:22px;text-align:center}
+.panel{max-width:470px}
+h1{font-size:clamp(25px,7vw,42px);margin:0 0 8px;color:#8eeeff;letter-spacing:.08em;text-shadow:0 0 18px #00bfff}
+.panel p{font-size:13px;line-height:1.75;color:#c3d4e7}
+button{border:1px solid #5dddf5;background:linear-gradient(135deg,#12334a,#101b35);color:#effcff;border-radius:9px;padding:11px 15px;font-weight:800;letter-spacing:.06em}
+button:active{transform:scale(.97);background:#1a5269}
+#start{margin-top:8px;min-width:180px}
+#controls{padding:9px 12px max(12px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;gap:10px}
+.pad{display:grid;grid-template-columns:repeat(3,43px);grid-template-rows:repeat(2,39px);gap:4px}
+.ctrl{width:43px;height:39px;padding:0;font-size:17px;background:#101d32cc;border-color:#355979}
+#up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
+.actions{display:flex;gap:7px;align-items:end}
+.actions button{height:54px;min-width:62px;font-size:11px}
+#fire{border-color:#60e8ff}#slash{border-color:#ff6f9d;color:#ffdce8}
+#switch{height:38px;min-width:68px;border-color:#9c8cff}
+.small{font-size:10px;color:#91a8c2;text-align:center;padding:0 8px 4px}
+@media(min-width:700px){#controls{justify-content:center;gap:80px}.ctrl{width:50px;height:44px}.pad{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,44px)}.actions button{min-width:78px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+<header><div class="logo">NEON//BREAK</div><div id="stageName">SECTOR 01 · TRAINING ZONE</div></header>
+<section id="hud">
+ <div class="meter"><b>PLAYER · HP <span id="hpText">100</span></b><div class="bar"><div class="fill" id="hpBar"></div></div></div>
+ <div class="meter"><b>WEAPON · <span id="weaponText">PULSE GUN</span></b><div class="bar"><div class="fill" id="allyBar" style="width:100%;background:linear-gradient(90deg,#a78bfa,#71d7ff)"></div></div></div>
+ <div class="meter" id="bossMeter"><b id="bossName">BOSS</b><div class="bar"><div class="fill" id="bossBar"></div></div></div>
+</section>
+<main><canvas id="game"></canvas><div id="overlay"><div class="panel"><h1>NEON//BREAK</h1><p>巨大企業が支配する近未来都市。<br>学生たちの小さなチーム「NIGHT SHIFT」は、<br>街のシステムを乗っ取ったAIの正体を追う。</p><p><b>主人公＋仲間3人。</b> 銃と刀を切り替え、敵のウェーブを突破しよう。<br>ボスを倒すと次のセクターへ進める。</p><button id="start">MISSION START</button><p style="font-size:10px">移動：画面下の方向キー / PC：WASD・矢印<br>銃：PULSE　刀：BLADE　武器切替：SWAP</p></div></div></main>
+<section id="controls">
+ <div class="pad">
+  <button class="ctrl" id="up">▲</button><button class="ctrl" id="left">◀</button><button class="ctrl" id="down">▼</button><button class="ctrl" id="right">▶</button>
+ </div>
+ <div class="actions"><button id="switch">SWAP</button><button id="fire">PULSE<br>FIRE</button><button id="slash">BLADE<br>SLASH</button></div>
+</section>
+<div class="small">仲間は自動で援護する · ボスの攻撃予告を見て回避しよう</div>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=800,H=520,active=false,frame=0,last=0,stage=1,score=0,weapon='gun',shake=0,notice='',noticeT=0;
+let player,enemies=[],shots=[],enemyShots=[],allies=[],particles=[],boss=null;
+const keys={},held={up:false,down:false,left:false,right:false,fire:false,slash:false};
+function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.floor(W*d);canvas.height=Math.floor(H*d);ctx.setTransform(d,0,0,d,0,0)}
+new ResizeObserver(resize).observe(canvas);resize();
+function reset(){player={x:W*.5,y:H*.72,r:12,hp:100,max:100,inv:0,cd:0,slash:0};enemies=[];shots=[];enemyShots=[];particles=[];boss=null;score=0;stage=1;weapon='gun';allies=[{x:-24,y:0,c:'#62d9ff',phase:0},{x:24,y:0,c:'#b39aff',phase:2},{x:0,y:26,c:'#ff85b5',phase:4}];spawnWave();active=true;updateHud()}
+function spawnWave(){enemies=[];boss=null;let count=stage===3?0:3+stage*2;for(let i=0;i<count;i++){let a=Math.PI*2*i/count;enemies.push({x:W/2+Math.cos(a)*Math.min(W*.32,170),y:H*.27+Math.sin(a)*65,r:12,hp:stage+1,max:stage+1,cd:50+Math.random()*80,speed:.45+stage*.08})}if(stage===2||stage===4||stage===6){boss={x:W/2,y:105,r:29,hp:45+stage*16,max:45+stage*16,cd:65,phase:0,name:stage===6?'CORE ZERO':'WARDEN-'+stage};$('bossMeter').style.display='block';$('bossName').textContent=boss.name}else $('bossMeter').style.display='none';notice=stage===6?'FINAL BOSS · CORE ZERO':stage%2===0?'BOSS APPROACHING':'SECTOR '+String(stage).padStart(2,'0');noticeT=130}
+function moveToward(o,x,y,s){let dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy)||1;o.x+=dx/d*s;o.y+=dy/d*s}
+function burst(x,y,color,n=8){for(let i=0;i<n;i++){let a=Math.random()*Math.PI*2,s=1+Math.random()*3;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:20+Math.random()*20,c:color})}}
+function shoot(x,y,tx,ty,speed,kind='player'){let a=Math.atan2(ty-y,tx-x);(kind==='player'?shots:enemyShots).push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,life:90,kind})}
+function fire(){if(!active||player.cd>0)return;player.cd=weapon==='gun'?12:25;if(weapon==='gun'){shoot(player.x,player.y-8,player.x,player.y-200,7);burst(player.x,player.y-8,'#6cf5ff',2)}else{player.slash=12;for(const e of enemies){if(Math.hypot(e.x-player.x,e.y-player.y)<58){e.hp-=3;burst(e.x,e.y,'#ff83bd',7)}}if(boss&&Math.hypot(boss.x-player.x,boss.y-player.y)<76){boss.hp-=5;burst(boss.x,boss.y,'#ff83bd',12)}}}
+function update(dt){if(!active)return;frame++;let s=dt/16.67;
+let dx=(keys.ArrowRight||keys.d||held.right?1:0)-(keys.ArrowLeft||keys.a||held.left?1:0),dy=(keys.ArrowDown||keys.s||held.down?1:0)-(keys.ArrowUp||keys.w||held.up?1:0),len=Math.hypot(dx,dy)||1;
+player.x=Math.max(18,Math.min(W-18,player.x+dx/len*3.3*s));player.y=Math.max(35,Math.min(H-20,player.y+dy/len*3.3*s));
+if((held.fire||keys[' '])&&weapon==='gun')fire();if(held.slash&&weapon==='blade')fire();
+if(player.cd>0)player.cd-=s;if(player.inv>0)player.inv-=s;if(player.slash>0)player.slash-=s;
+allies.forEach((a,i)=>{let ang=frame*.018+a.phase,tx=player.x+Math.cos(ang)*35,ty=player.y+Math.sin(ang)*27; a.x+=(tx-a.x)*.12*s;a.y+=(ty-a.y)*.12*s;if(frame%(95+i*23)===0){let target=enemies[0]||boss;if(target)shoot(a.x,a.y,target.x,target.y,5,'ally')}});
+for(const e of enemies){moveToward(e,player.x,player.y,e.speed*s*.25);e.cd-=s;if(e.cd<0){shoot(e.x,e.y,player.x,player.y,2.4+stage*.13,'enemy');e.cd=95+Math.random()*50}}
+if(boss){boss.phase+=.025*s;boss.x=W/2+Math.sin(boss.phase)*Math.min(110,W*.18);boss.cd-=s;if(boss.cd<0){for(let i=-1;i<=1;i++){let a=Math.atan2(player.y-boss.y,player.x-boss.x)+i*.23;enemyShots.push({x:boss.x,y:boss.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:100,kind:'enemy'})}boss.cd=65}}
+for(const arr of [shots,enemyShots])for(let p of arr){p.x+=p.vx*s;p.y+=p.vy*s;p.life-=s}
+for(const p of shots){for(const e of enemies){if(e.hp>0&&Math.hypot(e.x-p.x,e.y-p.y)<e.r+5){e.hp-=1;p.life=0;burst(e.x,e.y,'#6cf5ff',3);break}}if(boss&&Math.hypot(boss.x-p.x,boss.y-p.y)<boss.r+5){boss.hp-=1;p.life=0;burst(boss.x,boss.y,'#ff719c',3)}}
+for(const p of enemyShots){if(player.inv<=0&&Math.hypot(player.x-p.x,player.y-p.y)<player.r+5){player.hp-=8;player.inv=45;p.life=0;shake=6;burst(player.x,player.y,'#ff6b88',9)}}
+enemies=enemies.filter(e=>{if(e.hp<=0){score+=100;burst(e.x,e.y,'#72eaff',12);return false}return true});
+if(boss&&boss.hp<=0){score+=1000;burst(boss.x,boss.y,'#ff75ad',35);boss=null;$('bossMeter').style.display='none';}
+shots=shots.filter(p=>p.life>0&&p.y>-30&&p.y<H+30);enemyShots=enemyShots.filter(p=>p.life>0&&p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30);
+particles=particles.filter(p=>p.life>0);particles.forEach(p=>{p.x+=p.vx*s;p.y+=p.vy*s;p.life-=s});
+if(noticeT>0)noticeT-=s;
+if(player.hp<=0){active=false;showOverlay('MISSION FAILED','チームは撤退した。もう一度挑戦しよう。','RETRY')}
+else if(enemies.length===0&&!boss){if(stage>=6){active=false;showOverlay('SYSTEM OVERRIDE','CORE ZEROを停止した。街の夜明けは、ここから始まる。','PLAY AGAIN')}else{stage++;player.hp=Math.min(100,player.hp+18);spawnWave()}}
+updateHud()}
+function updateHud(){$('hpText').textContent=Math.max(0,Math.ceil(player?.hp??100));$('hpBar').style.width=Math.max(0,player?.hp??100)+'%';$('weaponText').textContent=weapon==='gun'?'PULSE GUN':'MONO BLADE';if(boss){$('bossMeter').style.display='block';$('bossBar').style.width=Math.max(0,boss.hp/boss.max*100)+'%'}}
+function showOverlay(title,desc,btn){$('overlay').style.display='flex';$('overlay').innerHTML=`<div class="panel"><h1>${title}</h1><p>${desc}</p><p>到達セクター：${stage}　 SCORE：${score}</p><button id="again">${btn}</button></div>`;$('again').onclick=()=>{ $('overlay').style.display='none';reset()}}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#071020';ctx.fillRect(0,0,W,H);
+ctx.save();if(shake>0){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.8}
+ctx.strokeStyle='#18304a';ctx.lineWidth=1;for(let x=0;x<W;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ctx.strokeStyle='#1d6680';ctx.globalAlpha=.45;ctx.strokeRect(12,12,W-24,H-24);ctx.globalAlpha=1;
+for(let i=0;i<7;i++){ctx.fillStyle=i%2?'#10233a':'#0b1b30';ctx.fillRect(i*W/7+8,20,3,H-40)}
+// allies
+for(const a of allies){ctx.shadowBlur=13;ctx.shadowColor=a.c;ctx.fillStyle=a.c;ctx.beginPath();ctx.arc(a.x,a.y,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#dffaff';ctx.fillRect(a.x-2,a.y-2,4,4)}
+// player
+if(player){ctx.save();if(player.inv>0&&Math.floor(frame/4)%2===0)ctx.globalAlpha=.35;ctx.shadowBlur=20;ctx.shadowColor='#56eaff';ctx.fillStyle='#bafaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#087d9b';ctx.beginPath();ctx.moveTo(player.x,player.y-18);ctx.lineTo(player.x-7,player.y-4);ctx.lineTo(player.x+7,player.y-4);ctx.fill();ctx.shadowBlur=0;if(player.slash>0){ctx.strokeStyle='#ff80b4';ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,43,-1.2,1.2);ctx.stroke()}ctx.restore()}
+for(const e of enemies){ctx.shadowBlur=12;ctx.shadowColor='#ff507f';ctx.fillStyle='#ff6387';ctx.beginPath();ctx.moveTo(e.x,e.y-e.r);ctx.lineTo(e.x+e.r,e.y);ctx.lineTo(e.x,e.y+e.r);ctx.lineTo(e.x-e.r,e.y);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#381b38';ctx.fillRect(e.x-10,e.y-e.r-8,20,3);ctx.fillStyle='#ffb2c5';ctx.fillRect(e.x-10,e.y-e.r-8,20*e.hp/e.max,3)}
+if(boss){ctx.shadowBlur=28;ctx.shadowColor='#ff3f80';ctx.fillStyle='#a72d63';ctx.beginPath();ctx.arc(boss.x,boss.y,boss.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ff9abb';ctx.lineWidth=3;ctx.beginPath();ctx.arc(boss.x,boss.y,boss.r+7,frame*.03,frame*.03+Math.PI*1.5);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff0f6';ctx.fillRect(boss.x-8,boss.y-4,16,5)}
+for(const p of shots.concat(enemyShots)){ctx.fillStyle=p.kind==='enemy'?'#ff7898':'#78f5ff';ctx.shadowBlur=10;ctx.shadowColor=ctx.fillStyle;ctx.beginPath();ctx.arc(p.x,p.y,p.kind==='enemy'?4:3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}
+for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/30);ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,3,3)}ctx.globalAlpha=1;
+ctx.restore();
+if(noticeT>0){ctx.fillStyle='#dffaff';ctx.textAlign='center';ctx.font='800 17px system-ui';ctx.shadowBlur=14;ctx.shadowColor='#00cfff';ctx.fillText(notice,W/2,H*.48);ctx.shadowBlur=0}
+ctx.fillStyle='#8da9c5';ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillText('NIGHT SHIFT  /  '+score+' PTS',18,H-13);
+}
+function loop(t){let dt=Math.min(34,t-last||16);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+$('start').onclick=()=>{$('overlay').style.display='none';reset()};
+$('switch').onclick=()=>{weapon=weapon==='gun'?'blade':'gun';updateHud()};
+$('fire').onpointerdown=e=>{e.preventDefault();held.fire=true; if(weapon==='blade')fire()};$('fire').onpointerup=$('fire').onpointerleave=()=>held.fire=false;
+$('slash').onpointerdown=e=>{e.preventDefault();held.slash=true;if(weapon==='gun')fire()};$('slash').onpointerup=$('slash').onpointerleave=()=>held.slash=false;
+for(const d of ['up','down','left','right']){$(d).onpointerdown=e=>{e.preventDefault();held[d]=true};$(d).onpointerup=$(d).onpointerleave=$(d).onpointercancel=()=>held[d]=false}
+addEventListener('keydown',e=>{keys[e.key]=true;if(e.key==='q'||e.key==='Q'){$('switch').click()}if(e.key==='j'||e.key==='J'){if(weapon==='gun')fire();else fire()}if(e.key==='k'||e.key==='K'){weapon='blade';fire()}});
+addEventListener('keyup',e=>keys[e.key]=false);
+})();
+</script>
+</body></html>
